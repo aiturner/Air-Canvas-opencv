@@ -1,5 +1,5 @@
 """
-Marker detection module for Air Canvas (No Smoothing)
+Marker detection module for Air Canvas
 """
 
 import cv2
@@ -23,7 +23,7 @@ class MarkerDetector:
         # Extract lower and upper as numpy arrays
         self.lower_hsv = np.array(color_range['lower'], dtype=np.uint8)
         self.upper_hsv = np.array(color_range['upper'], dtype=np.uint8)
-        # No previous position tracking!
+        self.prev_position = None
         
     def detect(self, frame):
         """
@@ -42,10 +42,21 @@ class MarkerDetector:
         contour = find_largest_contour(mask)
         
         if contour is not None:
-            # Get centroid - raw position, no smoothing!
+            # Get centroid
             position = get_centroid(contour)
+            
+            # Smooth movement (optional)
+            if self.prev_position is not None and position is not None:
+                # Simple moving average smoothing
+                position = (
+                    int(0.7 * position[0] + 0.3 * self.prev_position[0]),
+                    int(0.7 * position[1] + 0.3 * self.prev_position[1])
+                )
+            
+            self.prev_position = position
             return position
         
+        self.prev_position = None
         return None
     
     def get_mask(self, frame):
@@ -58,3 +69,4 @@ class MarkerDetector:
         color_range = HSV_RANGES.get(color_name, HSV_RANGES['blue'])
         self.lower_hsv = np.array(color_range['lower'], dtype=np.uint8)
         self.upper_hsv = np.array(color_range['upper'], dtype=np.uint8)
+        self.prev_position = None
